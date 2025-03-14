@@ -133,7 +133,9 @@ exports.spouses = async (req, res) => {
   const { memberId } = req.params;
 
   try {
-    const spouses = await fetchRelationships(memberId, ['wife', 'husband']);
+    const spouses = await getMemberSpouse(memberId);
+    //const spouses = await fetchRelationships(memberId, ['wife', 'husband']);
+    console.log('Spouses found:', spouses);
     return res.status(200).json({ spouses, spousesCount: spouses.length });
   } catch (error) {
     console.error('Error fetching spouses:', error);
@@ -475,6 +477,7 @@ const getAncestors = async (memberId, level = 1) => {
       nickName: rel.RelatedMember.nickName,
       lastName: rel.RelatedMember.lastName,
       dateOfBirth: rel.RelatedMember.dateOfBirth,
+      dateOfDeath: rel.RelatedMember.dateOfDeath,
       email: rel.RelatedMember.email,
       phoneNumber: rel.RelatedMember.phoneNumber,
       gender: rel.relationshipType === 'father' ? 'male' : 'female',
@@ -544,7 +547,7 @@ const getDescendants = async (memberId, level = 1) => {
     email: rel.Member.email,
     phoneNumber: rel.Member.phoneNumber,
     gender: rel.Member.gender,
-    dateOfBirth: rel.Member.dateOfBirth,
+    dateOfDeath: rel.Member.dateOfDeath,
     memberImage: rel.Member.memberImage,
     relationType: rel.relationshipType,
     children: [], // Placeholder for grandchildren
@@ -588,6 +591,7 @@ const getDescendants = async (memberId, level = 1) => {
           memberImage: spouseRelationship.Member.memberImage,
           gender: spouseRelationship.Member.gender,
           dateOfBirth: spouseRelationship.Member.dateOfBirth,
+          dateOfDeath: spouseRelationship.Member.dateOfDeath,
           email: spouseRelationship.Member.email,
           phoneNumber: spouseRelationship.Member.phoneNumber,
         };
@@ -600,6 +604,7 @@ const getDescendants = async (memberId, level = 1) => {
           memberImage: spouseRelationship.RelatedMember.memberImage,
           gender: spouseRelationship.RelatedMember.gender,
           dateOfBirth: spouseRelationship.RelatedMember.dateOfBirth,
+          dateOfDeath: spouseRelationship.RelatedMember.dateOfDeath,
           email: spouseRelationship.RelatedMember.email,
           phoneNumber: spouseRelationship.RelatedMember.phoneNumber,
         };
@@ -710,7 +715,7 @@ const getDescendantsRecursive = async (memberId, familyId) => {
               as: 'RelatedMember',
               attributes: [
                 'id', 'firstName', 'gender', 'middleName', 'nickName',
-                'dateOfBirth', 'dateOfDeath', 'lastName', 'verified',
+                'dateOfBirth', 'dateOfDeath', 'memberImage', 'lastName', 'verified',
               ],
             },
             {
@@ -718,37 +723,47 @@ const getDescendantsRecursive = async (memberId, familyId) => {
               as: 'Member',
               attributes: [
                 'id', 'firstName', 'gender', 'middleName', 'nickName',
-                'dateOfBirth', 'dateOfDeath', 'lastName', 'verified',
+                'dateOfBirth', 'dateOfDeath', 'memberImage', 'lastName', 'verified',
               ],
             },
           ],
       });
 
-      const spouse = spouseRelation ? spouseRelation.RelatedMember : null;
+      // Check both Member and RelatedMember
 
-      descendants.push({
-          id: child.id,
-          firstName: child.firstName,
-          middleName: child.middleName,
-          lastName: child.lastName,
-          nickName: child.nickName,
-          gender: child.gender,
-          dateOfBirth: child.dateOfBirth,
-          dateOfDeath: child.dateOfDeath,
-          memberImage: child.memberImage,
-          children: childDescendants, // Recursive descendants
-          spouse: spouse ? {
-              id: spouse.id,
-              firstName: spouse.firstName,
-              middleName: spouse.middleName,
-              lastName: spouse.lastName,
-              nickName: spouse.nickName,
-              gender: spouse.gender,
-              memberImage: spouse.memberImage,
-              dateOfBirth: spouse.dateOfBirth,
-              dateOfDeath: spouse.dateOfDeath
-          } : null
-      });
+      let spouse = null;
+      if (spouseRelation) {
+          spouse = spouseRelation.Member.id === child.id ? spouseRelation.RelatedMember : spouseRelation.Member;
+      } else {        
+        spouse = null;
+      }  
+      
+// Push the descendant, including spouse data if available
+descendants.push({
+  id: child.id,
+  firstName: child.firstName,
+  middleName: child.middleName,
+  lastName: child.lastName,
+  nickName: child.nickName,
+  gender: child.gender,
+  dateOfBirth: child.dateOfBirth,
+  dateOfDeath: child.dateOfDeath,
+  memberImage: child.memberImage,
+  children: childDescendants, // Recursive descendants
+  spouse: spouse
+    ? {
+        id: spouse.id,
+        firstName: spouse.firstName,
+        middleName: spouse.middleName,
+        lastName: spouse.lastName,
+        nickName: spouse.nickName,
+        gender: spouse.gender,
+        memberImage: spouse.memberImage,
+        dateOfBirth: spouse.dateOfBirth,
+        dateOfDeath: spouse.dateOfDeath,
+      }
+    : null,
+});
   }
 
   return descendants;
@@ -817,16 +832,14 @@ const getMemberSpouse = async (memberId) => {
           model: Member,
           as: 'RelatedMember',
           attributes: [
-            'id', 'firstName', 'gender', 'middleName',
-            'dateOfBirth', 'dateOfDeath', 'lastName', 'verified',
+            'id', 'firstName', 'gender', 'middleName', 'memberImage', 'dateOfBirth', 'dateOfDeath', 'lastName', 'verified',
           ],
         },
         {
           model: Member,
           as: 'Member',
           attributes: [
-            'id', 'firstName', 'gender', 'middleName',
-            'dateOfBirth', 'dateOfDeath', 'lastName', 'verified',
+            'id', 'firstName', 'gender', 'middleName', 'memberImage', 'dateOfBirth', 'dateOfDeath', 'lastName', 'verified',
           ],
         },
       ],
@@ -849,6 +862,7 @@ const getMemberSpouse = async (memberId) => {
         gender: spouse.gender,
         dateOfBirth: spouse.dateOfBirth,
         dateOfDeath: spouse.dateOfDeath,
+        memberImage: spouse.memberImage,
         verified: spouse.verified,
         relationshipId: rel.id,
         relationshipType: rel.relationshipType,
@@ -865,7 +879,7 @@ const getMemberSpouse = async (memberId) => {
 };
 
 
-exports.spouses = async (req, res) => {
+exports.spouses1 = async (req, res) => {
   const memberId = req.params;
   console.log('Received request for memberId:', memberId); // Log request ID
 

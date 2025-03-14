@@ -57,7 +57,7 @@ const nodemailer = require('nodemailer');
           {
             model: Family,
             as: 'Family', // Match this alias to your relationship definition
-            attributes: ['id', 'familyName', 'description'],
+            attributes: ['id', 'familyName', 'description', 'origin', 'location', 'createdAt', 'country', 'county','location', 'tribe'], // Include all necessary fields
           },
         ],
       });

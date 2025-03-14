@@ -5,7 +5,8 @@ const relativeController = require('../controllers/relativeController');
 
 // Define routes and link them to the controller functions
 router.get('/:memberId/parents', relativeController.parents);
-router.get('/:memberId/spouses', relativeController.spouses);
+//router.get('/:memberId/spouses', relativeController.spouses);
+router.get('/:memberId/spouses1', relativeController.spouses1);
 router.get('/:memberId/grand-parents', relativeController.grandParents);
 router.get('/:memberId/children', relativeController.children);
 router.get('/:memberId/siblings', relativeController.siblings);

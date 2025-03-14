@@ -457,10 +457,12 @@ exports.sendInviteEmail = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'You are invited to join a family on FamApp',
-      text: `You have been invited to join the family "${family.name}" on FamApp. Click the link below to register and join the family:
+      text: `You have been invited to join the family "${family.familyName}" on FamApp. "{\n}"
+      1. Search for FamApp on Google Play Store and install{"\n}"
+      2. Register and login{"\n}"
+      3. Search for "${family.familyName}" and request to join."{\n}""{\n}"
       
-      Registration Link: ${process.env.CLIENT_URL}/register?email=${encodeURIComponent(email)}&familyId=${familyId}
-      `,
+      Welcome to FamApp: Because blood is thicker than watermily:`,
     };
 
     // Send the email
